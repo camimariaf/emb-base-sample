@@ -1,3 +1,13 @@
-menu "Zephyr"
 source "Kconfig.zephyr"
+
+menu "Application Configuration"
+
+config ACTIVITY_INTERVAL_MS
+	int "Intervalo da Atividade (ms)"
+	default 2000
+	range 100 60000
+	help
+	 Configure o período, em milissegundos, para a execução periódica
+	 da atividade "Hello World". Ajuste este valor para mudar a frequência.
+
 endmenu

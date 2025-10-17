@@ -1,44 +1,71 @@
 #include <zephyr/kernel.h>
-#include <zephyr/sys/printk.h>
-#include <zephyr/device.h>
-#include <zephyr/drivers/pwm.h>
 #include <zephyr/logging/log.h>
+#include "sensor_types.h"
 
-LOG_MODULE_REGISTER(periodic_activity, LOG_LEVEL_INF);
+void temperature_producer(void *arg1, void *arg2, void *arg3);
+void humidity_producer(void *arg1, void *arg2, void *arg3);
+void filter_thread(void *arg1, void *arg2, void *arg3);
+void consumer_thread(void *arg1, void *arg2, void *arg3);
 
-static struct k_timer periodic_timer;
+LOG_MODULE_REGISTER(monit_sys, LOG_LEVEL_INF);
 
-static uint32_t current_cycle_count = 0;
+K_MSGQ_DEFINE(input_msgq,            // Nome da fila
+              sizeof(struct sensor_message), // Tamanho do item
+              16,                        // Número máximo de itens
+              4);                        // Alinhamento
 
-static void log_activity(void)
-{
-	LOG_INF("Hello World! Ciclo #%u", current_cycle_count);
-
-	printk("Hello World! Ciclo #%u (via printk)\n", current_cycle_count);
-
-	LOG_DBG("Configuração: Intervalo de %d ms", CONFIG_ACTIVITY_INTERVAL_MS);
-
-	if ((current_cycle_count % 7U) == 0U) {
-		LOG_ERR("Erro simulado: Falha de comunicação no ciclo %u", current_cycle_count);
-	}
-}
+// Fila de saída: FILTER (dados válidos) -> Consumer
+K_MSGQ_DEFINE(output_msgq,
+              sizeof(struct sensor_message),
+              16,
+              4);
 
 
-static void periodic_timer_handler(struct k_timer *timer_id)
-{
-	ARG_UNUSED(timer_id);
-	
-	current_cycle_count++;
-	log_activity();
-}
+K_THREAD_DEFINE(temp_producer_tid, 
+                STACK_SIZE, 
+                temperature_producer, 
+                NULL, NULL, NULL, 
+                PRIORITY, 
+                0, 
+                0);
+
+K_THREAD_DEFINE(humid_producer_tid, 
+                STACK_SIZE, 
+                humidity_producer, 
+                NULL, NULL, NULL, 
+                PRIORITY, 
+                0, 
+                0);
+
+K_THREAD_DEFINE(filter_tid, 
+                STACK_SIZE, 
+                filter_thread, 
+                NULL, NULL, NULL, 
+                PRIORITY, 
+                0, 
+                0);
+
+K_THREAD_DEFINE(consumer_tid, 
+                STACK_SIZE, 
+                consumer_thread, 
+                NULL, NULL, NULL, 
+                PRIORITY, 
+                0, 
+                0);
+
 
 int main(void)
 {
-	k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
-	
-	k_timer_start(&periodic_timer, 
-	              K_MSEC(CONFIG_ACTIVITY_INTERVAL_MS), 
-	              K_MSEC(CONFIG_ACTIVITY_INTERVAL_MS));
-	return 0;
-}
+    LOG_INF("===================================================================");
+    LOG_INF("|| Sistema de Monitoramento Ambiental - v1.0                     ||");
+    LOG_INF("===================================================================");
+    LOG_INF("Limite de Validação:");
+    LOG_INF("-> Temperatura: 18 a 30°C");
+    LOG_INF("-> Umidade: 40 a 70%%");
+    LOG_INF("-------------------------------------------------------------------");
+    LOG_INF("Pipeline: Producers -> Fila Entrada -> FILTER -> Fila Saída -> Consumer");
+    LOG_INF("Sistema em Operação...");
+    LOG_INF("-------------------------------------------------------------------");
 
+    return 0;
+}

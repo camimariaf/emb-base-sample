@@ -11,3 +11,43 @@ config ACTIVITY_INTERVAL_MS
 	 da atividade "Hello World". Ajuste este valor para mudar a frequência.
 
 endmenu
+
+menu "SNTP Configuration"
+
+config SNTP_SERVER
+    string "SNTP server hostname"
+    default "pool.ntp.org"
+    help
+      Hostname ou endereço IP do servidor SNTP para sincronização de tempo.
+      
+      Exemplos de servidores públicos:
+      - pool.ntp.org (recomendado, pool de servidores)
+      - time.google.com (servidor do Google)
+      - time.nist.gov (servidor do NIST)
+      - a.st1.ntp.br (servidor brasileiro)
+      - 192.0.2.2 (exemplo de IP)
+      
+      Para uso em produção, considere usar servidores NTP locais
+      ou próximos geograficamente para melhor precisão.
+
+config SNTP_SYNC_INTERVAL
+    int "SNTP synchronization interval (seconds)"
+    default 60
+    range 10 3600
+    help
+      Intervalo em segundos entre tentativas de sincronização SNTP.
+      
+      Valores recomendados:
+      - 60 segundos: Para ambientes de teste e desenvolvimento
+      - 300 segundos (5 min): Para uso geral
+      - 3600 segundos (1 hora): Para sistemas em produção
+      
+      Valores muito baixos podem sobrecarregar o servidor SNTP
+      e resultar em bloqueio do endereço IP.
+      
+      Mínimo: 10 segundos
+      Máximo: 3600 segundos (1 hora)
+
+endmenu
+
+
